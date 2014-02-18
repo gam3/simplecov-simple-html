@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Code coverage for @SimpleCov.project_name@</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <script src='./assets/0.0.1/application.js' type='text/javascript'>
+    </script>    
+    <link href="assets/0.0.1/application.css" media="screen, projection, print" rel="stylesheet" type="text/css" />
+    <link rel="shortcut icon" type="image/png" href="assets/0.0.1/favicon_red.png" />
+    <link rel="icon" type="image/png" href="assets/0.0.1/favicon_red.png" />
+  </head>
+  <body style="background-color:white;">
+    <div class="source_table" id="source_file">
+      <div class="header">
+	<h3 class='filename'>shortened_filename source_file</h3>
+	<h4><span class='covered_percent'>xxx</span>% covered</h4>
+	<div>
+	  <b class='lines_of_code'>source_file.lines_of_code</b> relevant lines. 
+	  <span class="green"><b class='covered_lines'>source_file.covered_lines.count</b> lines covered</span> and
+	  <span class="red"><b class='missed_lines'>source_file.missed_lines.count</b> lines missed.</span>
+	</div>
+      </div>
+      
+      <pre>
+	<ol>
+	  <li class="line.status" data-hits="" data-linenumber="">
+	    <span class="hits">skipped</span>
+	    <code class="ruby"></code>
+	  </li>
+	</ol>
+      </pre>
+    </div>
+  </body>
+</html>
+
