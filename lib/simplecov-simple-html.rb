@@ -1,4 +1,3 @@
-require 'erb'
 require 'cgi'
 require 'fileutils'
 require 'digest/sha1'
@@ -6,6 +5,7 @@ require 'time'
 require 'simplecov'
 
 require 'rexml/xpath'
+require 'rexml/document'
 
 require 'pp'
 
@@ -16,16 +16,25 @@ end
 
 class SimpleCov::Formatter::SimpleHTMLFormatter
   include REXML
+  def fixup_path(source_doc)
+      source_doc.each_element('//link') do |e|
+        e.add_attribute('href', e.attribute('href').to_s.sub('VERSION', SimpleCov::Formatter::SimpleHTMLFormatter::VERSION))
+      end
+      source_doc.each_element('//script') do |e|
+        e.add_attribute('src', e.attribute('src').to_s.sub('VERSION', SimpleCov::Formatter::SimpleHTMLFormatter::VERSION))
+      end
+  end
   def format(result)
     Dir[File.join(File.dirname(__FILE__), '../public/*')].each do |path|
       FileUtils.cp_r(path, asset_output_path)
     end
     File.open(File.join(File.dirname(__FILE__), '../views/source.html.in'), "r") do |ifile|
       source_doc = REXML::Document.new ifile
+      fixup_path(source_doc)
       result.source_files.each do |source_file|
         doc = source_doc.deep_clone
 	doc.each_recursive do |e|
-puts "Class #{e.attribute('class').to_s}" if e.attribute('class')
+#puts "Class #{e.attribute('class').to_s}" if e.attribute('class')
 	  case e.attribute('class').to_s
 	  when 'filename'
 	    e.text = shortened_filename source_file.filename
@@ -66,6 +75,7 @@ puts "Class #{e.attribute('class').to_s}" if e.attribute('class')
     end
     File.open(File.join(File.dirname(__FILE__), '../views/index.html.in'), "r") do |ifile|
       doc = REXML::Document.new ifile
+      fixup_path(doc)
       body = doc.root.elements['body/div']
       body.each_element do |e|
 	if e.attribute('class')
@@ -122,10 +132,9 @@ puts "warning Class #{ e.attribute('class').to_s}"
 		    x[6].text = source_file.covered_strength
 		    tbody << ntr
 		  end
-puts e
 		end
 	      else
-puts e
+#puts e
 	      end
 	    end
 	  when 'footer'
