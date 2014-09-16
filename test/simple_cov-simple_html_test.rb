@@ -1,4 +1,4 @@
-require 'helper'
+require 'test_helper'
 
 class TestSimpleCovSimpleHtml < MiniTest::Unit::TestCase
   def test_defined
@@ -6,3 +6,7 @@ class TestSimpleCovSimpleHtml < MiniTest::Unit::TestCase
     assert defined?(SimpleCov::Formatter::SimpleHTMLFormatter::VERSION)
   end
 end
+
+
+
+

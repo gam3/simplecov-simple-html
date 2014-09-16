@@ -1,0 +1,35 @@
+.rvmrc
+.bundle
+Gemfile.lock
+
+## MAC OS
+.DS_Store
+
+## TEXTMATE
+*.tmproj
+tmtags
+
+## EMACS
+*~
+\#*
+.\#*
+
+## VIM
+*.swp
+
+## PROJECT::GENERAL
+coverage
+rdoc
+pkg
+.sass-cache
+
+## PROJECT::SPECIFIC
+
+.yardoc/
+doc/
+
+test/temp_coverage
+test/coverage
+/bin/bash: *.GEM: command not found
+
+simplecov-simple-html-*.gem

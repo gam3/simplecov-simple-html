@@ -1,29 +1,35 @@
-require 'cgi'
-require 'fileutils'
-require 'digest/sha1'
-require 'time'
-require 'simplecov'
-
+# encodeing: utf-8
 require 'rexml/xpath'
 require 'rexml/document'
+require 'fileutils'
 
-require 'pp'
+require 'simplecov-simple-html/version'
 
 # Ensure we are using a compatible version of SimpleCov
 if Gem::Version.new(SimpleCov::VERSION) < Gem::Version.new("0.7.1")
   raise RuntimeError, "The version of SimpleCov you are using is too old. Please update with `gem install simplecov` or `bundle update simplecov`"
 end
 
+# A simple HTML formater for SimpleCov
+# There a coverage file created for each ruby file tested
 class SimpleCov::Formatter::SimpleHTMLFormatter
   include REXML
+  # fixup the path
+  # @param [REXML::Document] source_doc 
+  # @return [void]
   def fixup_path(source_doc)
-      source_doc.each_element('//link') do |e|
-        e.add_attribute('href', e.attribute('href').to_s.sub('VERSION', SimpleCov::Formatter::SimpleHTMLFormatter::VERSION))
-      end
-      source_doc.each_element('//script') do |e|
-        e.add_attribute('src', e.attribute('src').to_s.sub('VERSION', SimpleCov::Formatter::SimpleHTMLFormatter::VERSION))
-      end
+    source_doc.each_element('//link') do |e|
+      e.add_attribute('href', e.attribute('href').to_s.sub('VERSION', SimpleCov::Formatter::SimpleHTMLFormatter::VERSION))
+    end
+    source_doc.each_element('//script') do |e|
+      e.add_attribute('src', e.attribute('src').to_s.sub('VERSION', SimpleCov::Formatter::SimpleHTMLFormatter::VERSION))
+    end
+    nil
   end
+  # Format the coverage results
+  # @param [SimpleCov::Result] result The SimpleCov::Result
+  # @return [void]
+  # @note Creates a directory and serveral files
   def format(result)
     Dir[File.join(File.dirname(__FILE__), '../public/*')].each do |path|
       FileUtils.cp_r(path, asset_output_path)
@@ -33,154 +39,158 @@ class SimpleCov::Formatter::SimpleHTMLFormatter
       fixup_path(source_doc)
       result.source_files.each do |source_file|
         doc = source_doc.deep_clone
-	doc.each_recursive do |e|
-#puts "Class #{e.attribute('class').to_s}" if e.attribute('class')
-	  case e.attribute('class').to_s
-	  when 'filename'
-	    e.text = shortened_filename source_file.filename
-	  when 'covered_percent'
-	    e.text = source_file.covered_percent.round(2).to_s
-	  when 'lines_of_code'
-	    e.text = source_file.lines_of_code
-	  when 'covered_lines'
-	    e.text = source_file.covered_lines.size
-	  when 'missed_lines'
-	    e.text = source_file.missed_lines.size
-	  end
-	end
-	ol = doc.get_elements('//div/pre/ol')[0]
-	li = doc.get_elements('//div/pre/ol/li')[0]
-	ol.delete_element(li)
-	source_file.lines.each_with_index do |line|
-	  nli = li.deep_clone
-	  nli.add_attribute("class", line.status)
-	  nli.add_attribute("data-linenumber", line.number)
-	  nli.add_attribute("data-hits", line.coverage ? line.coverage : '')
-	  nli.get_elements('code')[0].text = CGI.escapeHTML(line.src.chomp)
-	  if line.covered?
-	    nli.get_elements('span')[0].text = line.coverage
-	  elsif line.skipped?
-	    nli.get_elements('span')[0].text = line.coverage
-	  else
-	    nli.delete_element(nli.get_elements('span')[0])
-	  end
-	  ol << nli
-	end
+        doc.each_recursive do |e|
+          case e.attribute('class').to_s
+          when 'filename'
+            e.text = shortened_filename source_file.filename
+          when 'covered_percent'
+            e.text = source_file.covered_percent.round(2).to_s
+          when 'lines_of_code'
+            e.text = source_file.lines_of_code
+          when 'covered_lines'
+            e.text = source_file.covered_lines.size
+          when 'missed_lines'
+            e.text = source_file.missed_lines.size
+          end
+        end
+        ol = doc.get_elements('//div/pre/ol')[0]
+        li = doc.get_elements('//div/pre/ol/li')[0]
+        ol.delete_element(li)
+        source_file.lines.each_with_index do |line|
+          nli = li.deep_clone
+          nli.add_attribute("class", line.status)
+          nli.add_attribute("data-linenumber", line.number)
+          nli.add_attribute("data-hits", line.coverage ? line.coverage : '')
+
+          nli.get_elements('code')[0].text = line.src
+          if line.covered?
+            nli.get_elements('span')[0].text = line.coverage
+          elsif line.skipped?
+            nli.get_elements('span')[0].text = line.coverage
+          else
+            nli.delete_element(nli.get_elements('span')[0])
+          end
+          ol << nli
+        end
         filename = File.join(output_path, shortened_filename(source_file.filename).gsub('/', '_') + '.html')
-#	FileUtils.mkdir_p(File.dirname(filename))
+        FileUtils.mkdir_p(File.dirname(filename))
         File.open(filename, 'w') do |ofile|
-	  ofile.puts doc.to_s
-	end
+          ofile.puts doc.to_s
+        end
       end
     end
     File.open(File.join(File.dirname(__FILE__), '../views/index.html.in'), "r") do |ifile|
       doc = REXML::Document.new ifile
       fixup_path(doc)
+      doc.xpath
       body = doc.root.elements['body/div']
-      body.each_element do |e|
-	if e.attribute('class')
-	  case e.attribute('class').to_s
-	  when 'timestamp'
-	    e.each_element do |e|
-	      case e.name.to_s
-	      when 'abbr'
-		time = Time.now
-		e.add_attribute('title', time.iso8601)
-		e.text = time.iso8601
-	      end
-	    end
-	  when 'group_tabs'
-	    e.each_element do |li|
-	      e.delete_element li
-	    end
-	  else
-puts "warning Class #{ e.attribute('class').to_s}"
-	  end
-	end
-	if e.attribute('id')
-	  case e.attribute('id').to_s
-	  when 'content'
-            file_list_container = e.get_elements("//div[@class='file_list_container']")[0]
+      XPath.each(body, '//*/span[@class="covered_strength_value"]') do |x|  
+        x.text = result.source_files.covered_strength.round(2)
+      end
+      body.each_element do |body_element|
+        if body_element.attribute('class')
+          case body_element.attribute('class').to_s
+          when 'timestamp'
+            body_element.each_element do |e2|
+              case e2.name.to_s
+              when 'abbr'
+                time = Time.now
+                e2.add_attribute('title', time.iso8601)
+                e2.text = time.iso8601
+              end
+            end
+          when 'group_tabs'
+            body_element.each_element do |li|
+              body_element.delete_element li
+            end
+puts "warning Class #{ body_element.attribute('class').to_s}"
+          end
+        end
+        if body_element.attribute('id')
+          case body_element.attribute('id').to_s
+          when 'content'
+            file_list_container = body_element.get_elements("//div[@class='file_list_container']")[0]
             file_list_container.add_attribute('id', 'AllFiles')
-#	    x = file_list_container.deep_clone
-	    x = file_list_container
-	    x.each_element do |e|
-	      case e.name
-	      when 'h2'
-	        e.each_recursive do |e|
-		  case e.attribute('class').to_s
-		  when 'group_name'
-		    e.text = 'All Files'
-		  end
-		end
-	      when 'table'
-		tbody = e.get_elements('//tbody')[0]
-		e.each_element('//tbody/tr') do |tr|
-		  tbody.delete_element tr
-		  result.source_files.each do |source_file|
-		    ntr = tr.deep_clone
-		    x = ntr.get_elements('//td')
+#           x = file_list_container.deep_clone
+            x = file_list_container
+            x.each_element do |e1|
+              case e1.name
+              when 'h2'
+                e1.each_recursive do |e2|
+                  case e2.attribute('class').to_s
+                  when 'group_name'
+                    e2.text = 'All Files'
+                  end
+                end
+              when 'table'
+                tbody = e1.get_elements('//tbody')[0]
+                body_element.each_element('//tbody/tr') do |tr|
+                  tbody.delete_element tr
+                  result.source_files.each do |source_file|
+                    ntr = tr.deep_clone
+                    x = ntr.get_elements('//td')
                     filename = x[0].get_elements('a')[0]
-		    filename.text = shortened_filename source_file.filename
-		    filename.add_attribute('href', shortened_filename(source_file.filename).gsub('/', '_') + '.html')
-		    x[1].add_attribute('class', coverage_css_class(source_file.covered_percent))
-		    x[1].text = source_file.covered_percent.round(2)
-		    x[2].text = source_file.lines.count
-		    x[3].text = source_file.covered_lines.size + source_file.missed_lines.count
-		    x[5].text = source_file.covered_lines.size
-		    x[4].text = source_file.missed_lines.size
-		    x[6].text = source_file.covered_strength
-		    tbody << ntr
-		  end
-		end
-	      else
+                    filename.text = shortened_filename source_file.filename
+                    filename.add_attribute('href', shortened_filename(source_file.filename).gsub('/', '_') + '.html')
+                    x[1].add_attribute('class', coverage_css_class(source_file.covered_percent))
+                    x[1].text = source_file.covered_percent.round(2)
+                    x[2].text = source_file.lines.count
+                    x[3].text = source_file.covered_lines.size + source_file.missed_lines.count
+                    x[4].text = source_file.covered_lines.size
+                    x[5].text = source_file.missed_lines.size
+                    x[6].text = source_file.covered_strength
+                    tbody << ntr
+                  end
+                end
+              else
 #puts e
-	      end
-	    end
-	  when 'footer'
-	    e.each_element do |e|
-	      case e.attribute('id').to_s
-	      when 'simplecov_version'
-		e.text = SimpleCov::VERSION
-	      when 'result.command_name'
-	        e.text = result.command_name
-	      else 
-#puts e
-	      end
-	    end
-	  else
-puts "Id #{ e.attribute('id').to_s }"
-	  end
-	end
+              end
+            end
+          when 'footer'
+            body_element.each_element do |e|
+              case body_element.attribute('id').to_s
+              when 'simplecov_version'
+                body_element.text = SimpleCov::VERSION
+              when 'result.command_name'
+                body_element.text = result.command_name
+              else 
+#puts body_element
+              end
+            end
+          else
+puts "Id #{ body_element.attribute('id').to_s }"
+          end
+        end
       end
       File.open(File.join(output_path, "index.html"), "w+") do |ofile|
-	ofile.puts doc.to_s
+        ofile.puts doc.to_s
       end
     end
     puts output_message(result)
+    nil
   end
 
+  # Generate the coverage report text
+  # @param [SimpleCov::Result] result The SimpleCov::Result
+  # @return [String] the coverage report
   def output_message(result)
     "Coverage report generated for #{result.command_name} to #{output_path}. #{result.covered_lines} / #{result.total_lines} LOC (#{result.covered_percent.round(2)}%) covered."
   end
 
-  def xxx(y)
-    a = 1
-    puts y
-  end
-
-  private
+private
 
   # Returns the an erb instance for the template of given name
+  # @deprecated
   def template(name)
-    puts "template(#{name})"
-#    ERB.new(File.read(File.join(File.dirname(__FILE__), '../views/', "#{name}.erb")))
+    raise "template(#{name})"
   end
 
+  # @return [String] the path where the coverage report will be generated
   def output_path
     SimpleCov.coverage_path
   end
 
+  # @return [String] the path where the assests are stored
   def asset_output_path
     return @asset_output_path if defined? @asset_output_path and @asset_output_path
     @asset_output_path = File.join(output_path, 'assets', SimpleCov::Formatter::SimpleHTMLFormatter::VERSION)
@@ -188,6 +198,7 @@ puts "Id #{ e.attribute('id').to_s }"
     @asset_output_path
   end
 
+  # @return [String] the path to a particular asset
   def assets_path(name)
     File.join('./assets', SimpleCov::Formatter::SimpleHTMLFormatter::VERSION, name)
   end
@@ -225,6 +236,7 @@ puts "Id #{ e.attribute('id').to_s }"
   end
 
   # Return a (kind of) unique id for the source file given. Uses SHA1 on path for the id
+  # @return [String] Digest::SHA1.hexdigest of the source_file
   def id(source_file)
     Digest::SHA1.hexdigest(source_file.filename)
   end
@@ -242,5 +254,3 @@ puts "Id #{ e.attribute('id').to_s }"
   end
 end
 
-$LOAD_PATH.unshift(File.join(File.dirname(__FILE__)))
-require 'simplecov-simple-html/version'
