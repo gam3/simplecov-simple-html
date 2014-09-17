@@ -13,8 +13,7 @@
     <div id="wrapper">
       <div class="timestamp">Generated <abbr class="timeago" title="title">1 year ago</abbr></div>
       <ul class="group_tabs">
-        <li class="active"><a class="AllFiles" href="#AllFiles">All Files (<span class="green">2.59%</span>)</a></li>
-        <li class=""><a class="AllFiles" href="#xAllFiles">All Files (<span class="green">92.59%</span>)</a></li>
+        <li class=""><a class="AllFiles" href="#AllFiles"><span class="tab_group_name">TITLE</span> (<span class="color"><span class="tab_coverage">2.59</span>%</span>)</a></li>
       </ul>
       <div id="content">
 	<div class="file_list_container" id="all_files">
@@ -28,12 +27,11 @@
 	       </span>
 	    </span> hits/line)
 	  </h2>
-	  <a name="">LINK</a>
 	  <div>
-	    <b>xxx</b> files in total.
-	    <b>xxx</b> relevant lines. 
-	    <span class="green"><b>xxx</b> lines covered</span> and
-	    <span class="red"><b>xxx</b> lines missed </span>
+	    <span style="font-weight: bold;" class="files_total">1</span> files in total.
+	    <span style="font-weight: bold;" class="file_lines">2</span> relevant lines. 
+	    <span class="green"><span style="font-weight: bold;" class="covered_lines">3</span> lines covered</span> and
+	    <span class="red"><span style="font-weight: bold;" class="missed_lines">4</span> lines missed </span>
 	  </div>
 	  <table class="file_list">
 	    <thead>
@@ -49,13 +47,13 @@
 	    </thead>
 	    <tbody>
 	      <tr class='for_each_file'>
-		<td class="strong"><a>file</a></td>
-		<td class="xxx strong">xxx %</td>
-		<td>xxx</td>
-		<td>xxx</td>
-		<td>xxx</td>
-		<td>xxx</td>
-		<td>xxx</td>
+		<td class="strong"><a class="src_link cboxElement">file</a></td>
+		<td class="xxx strong">66.66</td>
+		<td>1</td>
+		<td>2</td>
+		<td>3</td>
+		<td>4</td>
+		<td>0.5</td>
 	      </tr>
 	    </tbody>
 	  </table>

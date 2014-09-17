@@ -2,6 +2,8 @@
 require 'test_helper'
 
 require 'test'
+require 'model/model'
+require 'text/text'
 
 class TestSimpleCovSimpleHtmlCoverage < MiniTest::Unit::TestCase
   def test_test

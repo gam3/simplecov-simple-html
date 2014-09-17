@@ -8,6 +8,8 @@ SimpleCov.start do
   coverage_dir 'test/coverage'
   formatter SimpleCov::Formatter::SimpleHTMLFormatter
   command_name 'MiniTest::Unit'
+  add_group "Models", 'test/lib/model/*'
+  add_group "Tests", 'test/lib/text/*'
 end
 
 gem 'minitest'

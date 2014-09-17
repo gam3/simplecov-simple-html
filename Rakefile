@@ -1,5 +1,8 @@
-require 'bundler'
-Bundler::GemHelper.install_tasks
+begin
+#  require 'bundler'
+#  Bundler::GemHelper.install_tasks
+rescue LoadError
+end
 
 
 # See https://github.com/colszowka/simplecov/issues/171
@@ -8,7 +11,7 @@ task :fix_permissions do
   system 'bash -c "find . -type f -exec chmod 644 {} \; && find . -type d -exec chmod 755 {} \;"'
 end
 # Enforce proper permissions on each build
-Rake::Task[:build].prerequisites.unshift :fix_permissions
+#Rake::Task[:build].prerequisites.unshift :fix_permissions
 
 require 'rake/testtask'
 Rake::TestTask.new(:test) do |test|
@@ -43,6 +46,7 @@ end
 
 begin
   require 'yard'
+  require 'simplecov-simple-html'
   YARD::Rake::YardocTask.new do |t|
     t.options += ['--title', "simplecov-simple-html #{ SimpleCov::Formatter::SimpleHTMLFormatter::VERSION } Documentation"]
   end

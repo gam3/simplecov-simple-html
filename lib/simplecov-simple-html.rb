@@ -45,6 +45,7 @@ class SimpleCov::Formatter::SimpleHTMLFormatter
             e.text = shortened_filename source_file.filename
           when 'covered_percent'
             e.text = source_file.covered_percent.round(2).to_s
+            e.parent.attributes['style'] = "color: #{ coverage_css_class(source_file.covered_percent) };"
           when 'lines_of_code'
             e.text = source_file.lines_of_code
           when 'covered_lines'
@@ -79,91 +80,158 @@ class SimpleCov::Formatter::SimpleHTMLFormatter
         end
       end
     end
+    groups = [ "All Files" ] +  result.groups.each_key.to_a
+    a = Array.new
+    a = a.push [ "All Files", result.source_files ]
+    a += result.groups.to_a
+    groups_hash = Hash[ a ]
+
     File.open(File.join(File.dirname(__FILE__), '../views/index.html.in'), "r") do |ifile|
-      doc = REXML::Document.new ifile
-      fixup_path(doc)
-      doc.xpath
-      body = doc.root.elements['body/div']
-      XPath.each(body, '//*/span[@class="covered_strength_value"]') do |x|  
-        x.text = result.source_files.covered_strength.round(2)
-      end
-      body.each_element do |body_element|
-        if body_element.attribute('class')
-          case body_element.attribute('class').to_s
-          when 'timestamp'
-            body_element.each_element do |e2|
-              case e2.name.to_s
-              when 'abbr'
-                time = Time.now
-                e2.add_attribute('title', time.iso8601)
-                e2.text = time.iso8601
+      data = ifile.read
+      groups.each_with_index do |name, i|
+        doc = REXML::Document.new data
+        source_files = groups_hash[name]
+        fixup_path(doc)
+        doc.xpath
+        body = doc.root.elements['body/div']
+        XPath.each(body, '//*[@class="source_files_covered_percent"]') do |element|  
+          element.text = source_files.covered_percent.round(2)
+          element.parent.attributes['class'] = coverage_css_class(source_files.covered_percent)
+        end
+        XPath.each(body, '//*/span[@class="covered_strength_value"]') do |x|  
+          x.text = source_files.covered_strength.round(2)
+          x.parent.attributes['class'] =  strength_css_class(source_files.covered_strength)
+        end
+        XPath.each(body, '//*/span[@class="files_total"]') do |x|  
+	  x.text = source_files.size
+	end
+        XPath.each(body, '//*/span[@class="file_lines"]') do |x|  
+	  x.text = source_files.lines_of_code
+	end
+        XPath.each(body, '//*/span[@class="covered_lines"]') do |x|  
+	  x.text = source_files.covered_lines
+	end
+        XPath.each(body, '//*/span[@class="missed_lines"]') do |x|  
+	  x.text = source_files.missed_lines
+	end
+        XPath.each(body, '//*/ul[@class="group_tabs"]').each do |x|  
+#p x.to_s
+	end
+        body.each_element do |body_element|
+          if body_element.attribute('class')
+            case body_element.attribute('class').to_s
+            when 'timestamp'
+              body_element.each_element do |e2|
+                case e2.name.to_s
+                when 'abbr'
+                  time = Time.now
+                  e2.add_attribute('title', time.iso8601)
+                  e2.text = time.iso8601
+                end
               end
+            when 'group_tabs'
+	      fli = nil
+              body_element.to_a.each do |li|
+                case li
+		when REXML::Element
+	          fli = li.dup unless fli
+                  body_element.delete_element li
+		when REXML::Text
+                  body_element.delete li
+		else
+                  raise 'unknown'
+		end
+              end
+	      groups.each_with_index do |g, gi|
+		g_source_files = groups_hash[g]
+		nli = fli.deep_clone
+		if g == name
+		  nli.attributes['class'] = 'active'
+		end
+		nli.each_element('a/span[@class="tab_group_name"]') do |x|
+		  x.text = g
+		end
+		nli.each_element('a/span[@class="color"]') do |x|
+		  x.attributes['class'] = coverage_css_class(g_source_files.covered_percent)
+		end
+		nli.each_element('a/span/span[@class="tab_coverage"]') do |x|
+		  x.text = g_source_files.covered_percent.round(2)
+		end
+		nli.each_element('a') do |x|
+		  if gi > 0
+		    x.attributes['href'] = 'index%d.html' % gi
+		  else
+		    x.attributes['href'] = 'index.html'
+		  end
+		end
+		body_element.add_element nli
+	      end
             end
-          when 'group_tabs'
-            body_element.each_element do |li|
-              body_element.delete_element li
+          end
+          if body_element.attribute('id')
+            case body_element.attribute('id').to_s
+            when 'content'
+              file_list_container = body_element.get_elements("//div[@class='file_list_container']")[0]
+              file_list_container.add_attribute('id', 'AllFiles')
+  #           x = file_list_container.deep_clone
+              x = file_list_container
+              x.each_element do |e1|
+                case e1.name
+                when 'h2'
+                  e1.each_recursive do |e2|
+                    case e2.attribute('class').to_s
+                    when 'group_name'
+                      e2.text = name
+                    end
+                  end
+                when 'table'
+                  tbody = e1.get_elements('//tbody')[0]
+                  body_element.each_element('//tbody/tr') do |tr|
+                    tbody.delete_element tr
+                    source_files.each do |source_file|
+                      ntr = tr.deep_clone
+                      x = ntr.get_elements('//td')
+                      filename = x[0].get_elements('a')[0]
+                      filename.text = shortened_filename source_file.filename
+                      filename.add_attribute('href', shortened_filename(source_file.filename).gsub('/', '_') + '.html')
+                      x[1].add_attribute('class', coverage_css_class(source_file.covered_percent))
+                      x[1].text = source_file.covered_percent.round(2)
+                      x[2].text = source_file.lines.count
+                      x[3].text = source_file.covered_lines.size + source_file.missed_lines.count
+                      x[4].text = source_file.covered_lines.size
+                      x[5].text = source_file.missed_lines.size
+                      x[6].text = source_file.covered_strength
+                      tbody << ntr
+                    end
+                  end
+                else
+  #puts e
+                end
+              end
+            when 'footer'
+              body_element.each_element do |e|
+                case body_element.attribute('id').to_s
+                when 'simplecov_version'
+                  body_element.text = SimpleCov::VERSION
+                when 'result.command_name'
+                  body_element.text = result.command_name
+                else 
+  #puts body_element
+                end
+              end
+            else
+  puts "Id #{ body_element.attribute('id').to_s }"
             end
-puts "warning Class #{ body_element.attribute('class').to_s}"
           end
         end
-        if body_element.attribute('id')
-          case body_element.attribute('id').to_s
-          when 'content'
-            file_list_container = body_element.get_elements("//div[@class='file_list_container']")[0]
-            file_list_container.add_attribute('id', 'AllFiles')
-#           x = file_list_container.deep_clone
-            x = file_list_container
-            x.each_element do |e1|
-              case e1.name
-              when 'h2'
-                e1.each_recursive do |e2|
-                  case e2.attribute('class').to_s
-                  when 'group_name'
-                    e2.text = 'All Files'
-                  end
-                end
-              when 'table'
-                tbody = e1.get_elements('//tbody')[0]
-                body_element.each_element('//tbody/tr') do |tr|
-                  tbody.delete_element tr
-                  result.source_files.each do |source_file|
-                    ntr = tr.deep_clone
-                    x = ntr.get_elements('//td')
-                    filename = x[0].get_elements('a')[0]
-                    filename.text = shortened_filename source_file.filename
-                    filename.add_attribute('href', shortened_filename(source_file.filename).gsub('/', '_') + '.html')
-                    x[1].add_attribute('class', coverage_css_class(source_file.covered_percent))
-                    x[1].text = source_file.covered_percent.round(2)
-                    x[2].text = source_file.lines.count
-                    x[3].text = source_file.covered_lines.size + source_file.missed_lines.count
-                    x[4].text = source_file.covered_lines.size
-                    x[5].text = source_file.missed_lines.size
-                    x[6].text = source_file.covered_strength
-                    tbody << ntr
-                  end
-                end
-              else
-#puts e
-              end
-            end
-          when 'footer'
-            body_element.each_element do |e|
-              case body_element.attribute('id').to_s
-              when 'simplecov_version'
-                body_element.text = SimpleCov::VERSION
-              when 'result.command_name'
-                body_element.text = result.command_name
-              else 
-#puts body_element
-              end
-            end
-          else
-puts "Id #{ body_element.attribute('id').to_s }"
-          end
+        if i == 0
+          ofilename = 'index.html'
+        else
+          ofilename = "index#{i}.html"
         end
-      end
-      File.open(File.join(output_path, "index.html"), "w+") do |ofile|
-        ofile.puts doc.to_s
+        File.open(File.join(output_path, ofilename), "w+") do |ofile|
+          ofile.puts doc.to_s
+        end
       end
     end
     puts output_message(result)

@@ -13,7 +13,7 @@
     <div class="source_table" id="source_file">
       <div class="header">
 	<h3 class='filename'>shortened_filename source_file</h3>
-	<h4><span class='covered_percent'>xxx</span>% covered</h4>
+	<h4><span style="color: blue;"><span class='covered_percent'>666</span>%</span> covered</h4>
 	<div>
 	  <b class='lines_of_code'>source_file.lines_of_code</b> relevant lines. 
 	  <span class="green"><b class='covered_lines'>source_file.covered_lines.count</b> lines covered</span> and
